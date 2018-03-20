@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Hello World!</title>
+    <style type="text/css">
+      body {
+        margin: 0px;
+        background-color: white;
+      }
+      div.house {
+        width: 400px;
+        height: 30px;
+        text-size: 20px;
+        margin: 5px;
+        padding: 5px;
+        border: 4px solid green;
+        border-radius: 10px;
+        vertical-align: center;
+        background-color: #FFDA73;
+      }
+      div.factory {
+        width: 400px;
+        height: 30px;
+        text-size: 20px;
+        margin: 5px;
+        padding: 5px;
+        border: 4px solid red;
+        border-radius: 10px;
+        background-color: #FFDA73;
+      }
+      div.generator {
+        width: 400px;
+        height: 30px;
+        text-size: 20px;
+        margin: 5px;
+        padding: 5px;
+        border: 4px solid blue;
+        border-radius: 10px;
+        background-color: #FFDA73;
+      }
+
+      input[type=range] {
+        -webkit-appearance: none;
+        width: 400px;
+        margin: 7.3px 0;
+        margin-bottom: 30px;
+      }
+      input[type=range]:focus {
+        outline: none;
+      }
+      input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 8.4px;
+        cursor: pointer;
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        background: #3071a9;
+        border-radius: 1.3px;
+        border: 0.2px solid #010101;
+      }
+      input[type=range]::-webkit-slider-thumb {
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        border: 1px solid #000000;
+        height: 23px;
+        width: 23px;
+        border-radius: 50px;
+        background: #efffff;
+        cursor: pointer;
+        -webkit-appearance: none;
+        margin-top: -7.5px;
+      }
+      input[type=range]:focus::-webkit-slider-runnable-track {
+        background: #367ebd;
+      }
+      input[type=range]::-moz-range-track {
+        width: 100%;
+        height: 8.4px;
+        cursor: pointer;
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        background: #3071a9;
+        border-radius: 1.3px;
+        border: 0.2px solid #010101;
+      }
+      input[type=range]::-moz-range-thumb {
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        border: 1px solid #000000;
+        height: 23px;
+        width: 23px;
+        border-radius: 50px;
+        background: #efffff;
+        cursor: pointer;
+      }
+      input[type=range]::-ms-track {
+        width: 100%;
+        height: 8.4px;
+        cursor: pointer;
+        background: transparent;
+        border-color: transparent;
+        color: transparent;
+      }
+      input[type=range]::-ms-fill-lower {
+        background: #2a6495;
+        border: 0.2px solid #010101;
+        border-radius: 2.6px;
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+      }
+      input[type=range]::-ms-fill-upper {
+        background: #3071a9;
+        border: 0.2px solid #010101;
+        border-radius: 2.6px;
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+      }
+      input[type=range]::-ms-thumb {
+        box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        border: 1px solid #000000;
+        height: 23px;
+        width: 23px;
+        border-radius: 50px;
+        background: #efffff;
+        cursor: pointer;
+        height: 8.4px;
+      }
+      input[type=range]:focus::-ms-fill-lower {
+        background: #3071a9;
+      }
+      input[type=range]:focus::-ms-fill-upper {
+        background: #367ebd;
+      }
+    </style>
+  </head>
+  <body>
+    <center>
+      <div id = "0" class = "generator">on</div>
+      <input id = "i0" type = "range" max = "100" min = "0" value = "90">
+      <div id = "1" class = "factory">on</div>
+      <input id = "i1" type = "range" max = "100" min = "0" value = "90">
+      <div id = "2" class = "house">on</div>
+      <input id = "i2" type = "range" max = "100" min = "0" value = "90">
+      <div id = "3" class = "house">on</div>
+      <input id = "i3" type = "range" max = "100" min = "0" value = "90">
+      <div id = "4" class = "house">on</div>
+      <input id = "i4" type = "range" max = "100" min = "0" value = "90">
+      <div id = "5" class = "house">on</div>
+      <input id = "i5" type = "range" max = "100" min = "0" value = "90">
+      <br>
+      <script>
+        document.write('<div>Node: ' + process.versions.node + '</div>\n');
+        document.write('<div>Chrome: ' + process.versions.chrome + '</div>\n');
+        document.write('<div>Electron: ' + process.versions.electron + '</div>\n');
+        // You can also require other files to run in this process
+        require('./script.js');
+      </script>
+    </center>
+  </body>
+</html>
