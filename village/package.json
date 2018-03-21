@@ -1,0 +1,22 @@
+{
+  "name": "village",
+  "version": "1.0.0",
+  "description": "Village imitation",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/scaleflake/EnergyRequestor",
+  "keywords": [
+    "Electron",
+    "quick",
+    "start",
+    "tutorial",
+    "demo"
+  ],
+  "author": "scaleflake",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "electron": "~1.8.2"
+  }
+}

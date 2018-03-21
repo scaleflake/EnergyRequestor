@@ -2,6 +2,7 @@
   "name": "EnergyRequestor",
   "version": "1.0.0",
   "description": "Corporative desktop app for creating energy requests",
+  "description": "Energy Requestor desktop application",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
