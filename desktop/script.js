@@ -2,15 +2,9 @@ function getRandomFloat(min, max) {
     return (Math.random() * (max - min)) + min;
 }
 
-function getRandomProfile() {
-    var profile = [
-        15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 20, 
-        25, 25, 50, 90, 100, 95, 90, 95, 90, 90, 90, 90,
-        90, 95, 90, 85, 90, 95, 90, 90, 95, 100, 100, 100, 
-        95, 35, 15, 10, 10, 10, 10, 10, 10, 15, 15, 15
-    ];
+function getRandomProfile(profile, scale, bias) {
     for (var i = 0; i < 48; i++) {
-        profile[i] = (profile[i] / 100 * 300) * getRandomFloat(0.9, 1.1)  + getRandomFloat(-3.0, 3.0);
+        profile[i] = (profile[i] / 100 * scale) * getRandomFloat(0.9, 1.1)  + getRandomFloat(-bias, bias);
     }
     return profile;
 }
@@ -18,183 +12,121 @@ function getRandomProfile() {
 const wattCost = 4.0;
 
 const http = require('http');
-var generationAndConsumptionChart = {
-    data: {
-        labels: [ 
-            " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", 
-            " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
-            " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "
-        ],
-        datasets: [{
-            label: 'Генерация',
-            backgroundColor: Samples.utils.transparentize("blue", 0.7),
-            borderColor: "blue",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
-            ],
-            fill: true,
-        }, {
-            label: 'Фабрика',
-            backgroundColor: Samples.utils.transparentize("red", 0.7),
-            borderColor: "red",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
-            ],
-            fill: true,
-        }, {
-            label: 'Домохозяйства',
-            backgroundColor: Samples.utils.transparentize("green", 0.7),
-            borderColor: "green",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
-            ],
-            fill: true,
-        }, {
-            label: 'Доступно для запроса',
-            backgroundColor: Samples.utils.transparentize("purple", 0.7),
-            borderColor: "purple",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
-            ],
-            fill: true,
-        }]
-    },
-    options: {
-        animation: false,
-        responsive: true,
-        elements: {
-            line: {
-                tension: 0.5
-            }
-        },
-        title: {
-            display: true,
-            text: ''
-        },
-        hover: {
-            mode: 'nearest',
-            intersect: true
-        },
-        scales: {
-            xAxes: [{
-                display: true,
-                scaleLabel: {
-                    display: true,
-                    labelString: 'Time'
-                }
-            }],
-            yAxes: [{
-                display: true,
-                scaleLabel: {
-                    display: true,
-                    labelString: 'Watts'
-                }
-            }]
+
+class EnergyChart {
+    constructor(bufferSize) {
+        this.buffer = {
+            values: []
         }
-    },
-    ctx: null,
-    generation: 0.0,
-    ownConsumption: 0.0,
-    othersConsumtion: 0.0,
-    initialize: function() {
-        this.ctx = document.getElementById("generationAndConsumption").getContext("2d");
 
-        function updateData() {
-            http.get('http://127.0.0.1:9000/getGenerators', function(resp) {
-                var data = '';
+        for (var i = 0; i < bufferSize; i++) {
+            this.buffer.values.push(0.0);
+        }
 
-                resp.on('data', function(chunk) {
-                    data += chunk;
-                });
+        this.options = {
+            animation: false,
+            responsive: true,
+            elements: {
+                line: {
+                    tension: 0.5
+                }
+            },
+            title: {
+                display: true,
+                text: ''
+            },
+            hover: {
+                mode: 'nearest',
+                intersect: true
+            },
+            scales: {
+                xAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Time'
+                    }
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Watts'
+                    },
 
-                resp.on('end', function() {
-                    generationAndConsumptionChart.generation = parseFloat(data);
-                    generationAndConsumptionChart.data.datasets[0].data.push(parseFloat(data) * (-1.0));
-                    generationAndConsumptionChart.data.datasets[0].data.shift();
-                });
-            });
+                }]
+            }
+        };
 
-            http.get('http://127.0.0.1:9000/getFactories', function(resp) {
-                var data = '';
+        this.data = {
+            labels: [ 
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", 
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "
+            ],
+            datasets: []
+        };
 
-                resp.on('data', function(chunk) {
-                    data += chunk;
-                });
+        var canvasContext = document.getElementById("generationAndConsumption").getContext("2d");
+        this.chart = new Chart(canvasContext, {
+            type: 'line',
+            data: this.data,
+            options: this.options
+        });
 
-                resp.on('end', function() {
-                    generationAndConsumptionChart.ownConsumption = parseFloat(data);
-                    generationAndConsumptionChart.data.datasets[1].data.push(parseFloat(data));
-                    generationAndConsumptionChart.data.datasets[1].data.shift();
-                });
-            });
-            
-            http.get('http://127.0.0.1:9000/getHomeholds', function(resp) {
-                var data = '';
+        this.handlers = [];
+    }
+    addChart(label, color, handler) {
+        this.data.datasets.push({
+            label: label,
+            backgroundColor: Samples.utils.transparentize(color, 0.9),
+            borderColor: Samples.utils.transparentize(color, 0.2),
+            data: [ 
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0.5, 1, 1.5, 2, 3, 4, 6.5, 9, 12.5, 16
+            ],
+            borderWidth: 2.0,
+            fill: true,
+            hidden: false, // hides dataset
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            pointBackgroundColor: Samples.utils.transparentize(color, 0.0)
+        });
 
-                resp.on('data', function(chunk) {
-                    data += chunk;
-                });
+        this.handlers.push(handler);
+    }
+    start() {
+        var chart = this;
 
-                resp.on('end', function() {
-                    generationAndConsumptionChart.othersConsumtion = parseFloat(data);
-                    generationAndConsumptionChart.data.datasets[2].data.push(parseFloat(data));
-                    generationAndConsumptionChart.data.datasets[2].data.shift();
-                });
-            });
+        function getData() {
+            for (var i = 0; i < chart.handlers.length; i++) {
+                chart.handlers[i](chart.buffer, i);
+            }
+        }
 
-            http.get('http://127.0.0.1:9000/getAvailable', function(resp) {
-                var data = '';
-
-                resp.on('data', function(chunk) {
-                    data += chunk;
-                });
-
-                resp.on('end', function() {
-                    generationAndConsumptionChart.data.datasets[3].data.push(parseFloat(data));
-                    generationAndConsumptionChart.data.datasets[3].data.shift();
-                });
-            });
+        function pushData() {
+            for (var i = 0; i < chart.data.datasets.length; i++) {
+                chart.data.datasets[i].data.push(chart.buffer.values[i]);
+                chart.data.datasets[i].data.shift();
+            }
 
             var time = new Date();
-            generationAndConsumptionChart.data.labels.push(String(time.getHours()) + ":" + String(time.getMinutes()) + ":" + String(time.getSeconds()));
-            generationAndConsumptionChart.data.labels.shift();
-
-            var deficiency = generationAndConsumptionChart.generation +
-                             generationAndConsumptionChart.ownConsumption +
-                             generationAndConsumptionChart.othersConsumtion;
-            document.getElementById('deficiency').innerHTML = String(deficiency.toFixed(3)) + ' Ватт*час';
-            document.getElementById('wholeExpenses').innerHTML = String((deficiency * wattCost).toFixed(3)) + ' руб.';
-            document.getElementById('ownExpenses').innerHTML = String((deficiency * wattCost * generationAndConsumptionChart.ownConsumption / 
-                (generationAndConsumptionChart.ownConsumption + generationAndConsumptionChart.othersConsumtion)).toFixed(3)) + ' руб.';
+            chart.data.labels.push(String(time.getHours()) + ":" + String(time.getMinutes()) + ":" + String(time.getSeconds()));
+            chart.data.labels.shift();
         }
 
-        function drawChart() {
-            var chart = {
-                type: 'line',
-                data: generationAndConsumptionChart.data,
-                options: generationAndConsumptionChart.options
-            };
-            window.myLine = new Chart(generationAndConsumptionChart.ctx, chart);
-        }
-
-        updateData();
-        drawChart();
+        getData();
+        chart.chart.update();
         setInterval(function() {
-            updateData();
-            drawChart();
+            getData();
+            pushData();
+            chart.chart.update();
         }, 1000 * 5);
-    },
-    addChart: function() {
-
     }
-};
+}
 
 const sensorId = 2;
-var dayProfileChart = {
+var dayProfilesChart = {
     data: {
         labels: [ 
             "00:--", " ", "01:--", " ", "02:--", " ", "03:--", " ", "04:--", " ", "05:--", " ", 
@@ -206,6 +138,15 @@ var dayProfileChart = {
             label: 'Среднее потребление',
             backgroundColor: Samples.utils.transparentize("orange"),
             borderColor: "orange",
+            data: [ 
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
+            ],
+            fill: true,
+        }, {
+            label: 'Генерация завтра',
+            backgroundColor: Samples.utils.transparentize("grey"),
+            borderColor: "grey",
             data: [ 
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
@@ -223,6 +164,9 @@ var dayProfileChart = {
         title: {
             display: true,
             text: ''
+        },
+        legend: {
+            display: false,
         },
         tooltips: {
             mode: 'index',
@@ -249,32 +193,41 @@ var dayProfileChart = {
             }]
         }
     },
-    ctx: null,
-    initialize: function() {
-        this.ctx = document.getElementById("dayProfile").getContext("2d");
+    start: function() {
+        var ctx = document.getElementById("dayProfile").getContext("2d");
 
-        function updateProfile() {
-            function calculateProfile() {
-                var profile = getRandomProfile();
-                return profile;
-            }
-            dayProfileChart.data.datasets[0].data = getRandomProfile();
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: this.data,
+            options: this.options
+        });
+
+        function updateConsumption() {
+            dayProfilesChart.data.datasets[0].data = getRandomProfile([
+                15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 20, 
+                25, 25, 50, 90, 100, 95, 90, 95, 90, 90, 90, 90,
+                90, 95, 90, 85, 90, 95, 90, 90, 95, 100, 100, 100, 
+                95, 35, 15, 10, 10, 10, 10, 10, 10, 15, 15, 15
+            ], 300, 3);
         }
 
-        function drawChart() {
-            chart = {
-                type: 'line',
-                data: dayProfileChart.data,
-                options: dayProfileChart.options
-            };
-            window.myLine = new Chart(dayProfileChart.ctx, chart);
+        function updateGeneration() {
+            dayProfilesChart.data.datasets[1].data = getRandomProfile([
+                100, 100, 100, 100, 100, 100, 100, 100, 100, 110, 120, 130, 
+                140, 150, 160, 160, 160, 170, 170, 170, 170, 170, 170, 170, 
+                180, 180, 180, 180, 180, 170, 170, 160, 160, 150, 140, 130,  
+                120, 110, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100
+            ], 200, 10);
         }
+        
+        updateConsumption();
+        updateGeneration();
 
-        updateProfile();
-        drawChart();
+        chart.update();
         setInterval(function() {
-            updateProfile();
-            drawChart();
+            updateConsumption();
+            updateGeneration();
+            chart.update();
         }, 1000 * 10);
     },
 } 
@@ -284,12 +237,19 @@ const $ = require('jquery');
 $(document).ready(function() {
     const begin = $('#begin');
     const end = $('#end');
-    const energy = $('#energy');
+
+    const energyDiv = document.getElementById('energydiv')
+    const energy = document.getElementById('energy');
+
+    energy.addEventListener("input", function() {
+        energyDiv.innerHTML = energy.value;
+    });
 
     function requestEnergy() {
-        console.log(begin.val() + ' ' + end.val() + ' ' + String(energy.val()));
-        var string = 'http://127.0.0.1:9000/requestEnergy?begin=' + begin.val() + '&end=' + end.val() + '&energy=' + String(energy.val());
+        console.log(begin.val() + ' ' + end.val() + ' ' + String(energy.value));
+        var string = 'http://127.0.0.1:9000/requestEnergy?begin=' + begin.val() + '&end=' + end.val() + '&energy=' + String(energy.value);
         console.log(string);
+
         http.get(string, function(resp) {
             var data = '';
 
@@ -306,8 +266,60 @@ $(document).ready(function() {
     const button = document.getElementById('requestButton');
     button.addEventListener("click", requestEnergy);
 
-    var ctx = document.getElementById("generationAndConsumption").getContext("2d");
+    var energyChart = new EnergyChart(5);
 
-    generationAndConsumptionChart.initialize();
-    dayProfileChart.initialize();
+    function bind(buffer, i) {
+        return function(resp) {
+            var data = '';
+
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+
+            resp.on('end', function() {
+                buffer.values[i] = parseFloat(data);
+            });
+        }
+    }
+
+    energyChart.addChart("Генерация", "blue", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getGenerators', function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                buffer.values[i] = parseFloat(data) * -1;
+            });
+        });
+    });
+
+    energyChart.addChart("Фабрики", "red", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getFactories', bind(buffer, i));
+    });
+
+    energyChart.addChart("Домохозяйства", "green", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getHomeholds', bind(buffer, i));
+    });
+
+    energyChart.addChart("Недостаток", "orange", function(buffer, i) {
+        var generation = buffer.values[0] * -1;
+        var ownConsumption = buffer.values[1];
+        var othersConsumtion = buffer.values[2];
+
+        var deficiency = generation + ownConsumption + othersConsumtion;
+        document.getElementById('deficiency').innerHTML = String(deficiency.toFixed(3)) + ' Ватт*час';
+        document.getElementById('wholeExpenses').innerHTML = String((deficiency * wattCost).toFixed(3)) + ' руб.';
+        document.getElementById('ownExpenses').innerHTML = String((deficiency * wattCost * ownConsumption / (ownConsumption + othersConsumtion)).toFixed(3)) + ' руб.';
+
+        buffer.values[i] = deficiency;
+    });
+
+    energyChart.addChart("Доступно для запроса", "purple", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getAvailable', bind(buffer, i));
+    });
+
+    energyChart.start();
+
+    dayProfilesChart.start();
 });
