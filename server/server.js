@@ -166,7 +166,7 @@
     function getEnergyById(id) {
         for (i = 0; i < sensors.length; i++) {
             if (sensors[i].id == id) {
-                return sensors[i].energy;
+                return sensors[i].current;
             }
         }
     }
@@ -230,7 +230,8 @@
             console.log('Disconnected: ' + sock.remoteAddress + ':' + sock.remotePort);
         });
     });
-    tcpServer.listen(8000, '127.0.0.1');
+    tcpServer.listen(8000);
+    //tcpServer.listen(8000, '127.0.0.1');
     console.log('TCP server started');
     console.log('');
 //} ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -329,11 +330,12 @@
 
     httpServer.get('/getSensor', function(req, res) {
         if (req.query.type !== undefined) {
-            var string = String(getEnergyByType(parseInt(req.query.type)))
-            res.send(string);
+            res.send(String(getEnergyByType(parseInt(req.query.type))));
         } else if (req.query.id !== undefined) {
             res.send(String(getEnergyById(parseInt(req.query.id))));
-        }
+        } else {
+	    res.send('tut error');
+	}
     });
 
     httpServer.get('/getAvailable', function(req, res) {
