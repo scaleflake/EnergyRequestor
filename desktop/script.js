@@ -1,29 +1,25 @@
-function getRandomFloat(min, max) {
-    return (Math.random() * (max - min)) + min;
-}
-
-function getRandomProfile(profile, scale, bias) {
-    for (var i = 0; i < 48; i++) {
-        profile[i] = (profile[i] / 100 * scale) * getRandomFloat(0.9, 1.1)  + getRandomFloat(-bias, bias);
-    }
-    return profile;
-}
+const http = require('http');
 
 const wattCost = 4.0;
 
-const http = require('http');
-
-class EnergyChart {
-    constructor(bufferSize) {
+class RealTimeChart {
+    constructor() {
         this.buffer = {
             values: []
-        }
+        };
 
-        for (var i = 0; i < bufferSize; i++) {
-            this.buffer.values.push(0.0);
-        }
+        this.data = {
+            labels: [ 
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", 
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
+                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "
+            ],
+            datasets: []
+        };
 
-        this.options = {
+        this.handlers = [];
+
+        var options = {
             animation: false,
             responsive: true,
             elements: {
@@ -58,32 +54,22 @@ class EnergyChart {
             }
         };
 
-        this.data = {
-            labels: [ 
-                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", 
-                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
-                " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "
-            ],
-            datasets: []
-        };
-
         var canvasContext = document.getElementById("generationAndConsumption").getContext("2d");
         this.chart = new Chart(canvasContext, {
             type: 'line',
             data: this.data,
-            options: this.options
+            options: options
         });
-
-        this.handlers = [];
     }
     addChart(label, color, handler) {
+        this.buffer.values.push(0);
         this.data.datasets.push({
             label: label,
             backgroundColor: Samples.utils.transparentize(color, 0.9),
             borderColor: Samples.utils.transparentize(color, 0.2),
             data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0.5, 1, 1.5, 2, 3, 4, 6.5, 9, 12.5, 16
+                NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, 
+                NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN
             ],
             borderWidth: 2.0,
             fill: true,
@@ -92,7 +78,6 @@ class EnergyChart {
             pointHoverRadius: 4,
             pointBackgroundColor: Samples.utils.transparentize(color, 0.0)
         });
-
         this.handlers.push(handler);
     }
     start() {
@@ -121,122 +106,115 @@ class EnergyChart {
             getData();
             pushData();
             chart.chart.update();
-        }, 1000 * 5);
+        }, 1000 * 2);
     }
 }
 
-const sensorId = 2;
-var dayProfilesChart = {
-    data: {
-        labels: [ 
-            "00:--", " ", "01:--", " ", "02:--", " ", "03:--", " ", "04:--", " ", "05:--", " ", 
-            "06:--", " ", "07:--", " ", "08:--", " ", "09:--", " ", "10:--", " ", "11:--", " ",
-            "12:--", " ", "13:--", " ", "14:--", " ", "15:--", " ", "16:--", " ", "17:--", " ",
-            "18:--", " ", "19:--", " ", "20:--", " ", "21:--", " ", "22:--", " ", "23:--", " ",
-        ],
-        datasets: [{
-            label: 'Среднее потребление',
-            backgroundColor: Samples.utils.transparentize("orange"),
-            borderColor: "orange",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
+class ProfilesChart {
+    constructor() {
+        this.data = {
+            labels: [ 
+                "00:--", " ", "01:--", " ", "02:--", " ", "03:--", " ", "04:--", " ", "05:--", " ", 
+                "06:--", " ", "07:--", " ", "08:--", " ", "09:--", " ", "10:--", " ", "11:--", " ",
+                "12:--", " ", "13:--", " ", "14:--", " ", "15:--", " ", "16:--", " ", "17:--", " ",
+                "18:--", " ", "19:--", " ", "20:--", " ", "21:--", " ", "22:--", " ", "23:--", " ",
             ],
-            fill: true,
-        }, {
-            label: 'Генерация завтра',
-            backgroundColor: Samples.utils.transparentize("grey"),
-            borderColor: "grey",
-            data: [ 
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
-            ],
-            fill: true,
-        }]
-    },
-    options: {
-        animation: false, responsive: true,
-        elements: {
-            line: {
-                tension: 0.5
-            }
-        },
-        title: {
-            display: true,
-            text: ''
-        },
-        legend: {
-            display: false,
-        },
-        tooltips: {
-            mode: 'index',
-            intersect: false,
-        },
-        hover: {
-            mode: 'nearest',
-            intersect: true
-        },
-        scales: {
-            xAxes: [{
-                display: true,
-                scaleLabel: {
-                    display: true,
-                    labelString: 'Time'
-                }
-            }],
-            yAxes: [{
-                display: true,
-                scaleLabel: {
-                    display: true,
-                    labelString: 'Watts'
-                }
-            }]
-        }
-    },
-    start: function() {
-        var ctx = document.getElementById("dayProfile").getContext("2d");
+            datasets: []
+        };
 
-        var chart = new Chart(ctx, {
+        this.handlers = [];
+
+        var options = {
+            animation: false, responsive: true,
+            elements: {
+                line: {
+                    tension: 0.5
+                }
+            },
+            title: {
+                display: true,
+                text: ''
+            },
+            legend: {
+                display: false,
+            },
+            tooltips: {
+                mode: 'index',
+                intersect: false,
+            },
+            hover: {
+                mode: 'nearest',
+                intersect: true
+            },
+            scales: {
+                xAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Time'
+                    }
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Watts'
+                    }
+                }]
+            }
+        };
+
+        var canvasContext = document.getElementById("dayProfile").getContext("2d");
+        this.chart = new Chart(canvasContext, {
             type: 'line',
             data: this.data,
-            options: this.options
+            options: options
+        });
+    }
+    addChart(label, color, handler) {
+        this.data.datasets.push({
+            label: label,
+            backgroundColor: Samples.utils.transparentize(color, 0.8),
+            borderColor: color,
+            data: [ 
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
+            ],
+            borderWidth: 2.0,
+            fill: true,
+            hidden: false, // hides dataset
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            pointBackgroundColor: Samples.utils.transparentize(color, 0.0)
         });
 
-        function updateConsumption() {
-            dayProfilesChart.data.datasets[0].data = getRandomProfile([
-                15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 20, 20, 
-                25, 25, 50, 90, 100, 95, 90, 95, 90, 90, 90, 90,
-                90, 95, 90, 85, 90, 95, 90, 90, 95, 100, 100, 100, 
-                95, 35, 15, 10, 10, 10, 10, 10, 10, 15, 15, 15
-            ], 300, 3);
-        }
-
-        function updateGeneration() {
-            dayProfilesChart.data.datasets[1].data = getRandomProfile([
-                100, 100, 100, 100, 100, 100, 100, 100, 100, 110, 120, 130, 
-                140, 150, 160, 160, 160, 170, 170, 170, 170, 170, 170, 170, 
-                180, 180, 180, 180, 180, 170, 170, 160, 160, 150, 140, 130,  
-                120, 110, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100
-            ], 200, 10);
+        this.handlers.push(handler);
+    }
+    start() {
+        var chart = this;
+        function update() {
+            for (var i = 0; i < chart.handlers.length; i++) {
+                chart.handlers[i](chart.data, i);
+            }
         }
         
-        updateConsumption();
-        updateGeneration();
+        update();
+        setTimeout(function() {
+            chart.chart.update();
 
-        chart.update();
-        setInterval(function() {
-            updateConsumption();
-            updateGeneration();
-            chart.update();
-        }, 1000 * 10);
-    },
+            setInterval(function() {
+                update();
+                chart.chart.update();
+            }, 1000 * 10);
+        }, 200);
+    }
 } 
 
-const $ = require('jquery');
+// const $ = require('jquery');
 
-$(document).ready(function() {
-    const begin = $('#begin');
-    const end = $('#end');
+document.addEventListener("DOMContentLoaded", function(event) { 
+    const begin = document.getElementById('begin');
+    const end = document.getElementById('end');
 
     const energyDiv = document.getElementById('energydiv')
     const energy = document.getElementById('energy');
@@ -246,8 +224,7 @@ $(document).ready(function() {
     });
 
     function requestEnergy() {
-        console.log(begin.val() + ' ' + end.val() + ' ' + String(energy.value));
-        var string = 'http://127.0.0.1:9000/requestEnergy?begin=' + begin.val() + '&end=' + end.val() + '&energy=' + String(energy.value);
+        var string = 'http://127.0.0.1:9000/requestEnergy?begin=' + begin.value + '&end=' + end.value + '&energy=' + String(energy.value);
         console.log(string);
 
         http.get(string, function(resp) {
@@ -266,9 +243,12 @@ $(document).ready(function() {
     const button = document.getElementById('requestButton');
     button.addEventListener("click", requestEnergy);
 
-    var energyChart = new EnergyChart(5);
 
-    function bind(buffer, i) {
+
+
+    var realTimeChart = new RealTimeChart();
+
+    function createReciever(buffer, i) {
         return function(resp) {
             var data = '';
 
@@ -282,8 +262,8 @@ $(document).ready(function() {
         }
     }
 
-    energyChart.addChart("Генерация", "blue", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getGenerators', function(resp) {
+    realTimeChart.addChart("Генерация", "blue", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getSensor?type=0', function(resp) {
             var data = '';
             resp.on('data', function(chunk) {
                 data += chunk;
@@ -294,15 +274,17 @@ $(document).ready(function() {
         });
     });
 
-    energyChart.addChart("Фабрики", "red", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getFactories', bind(buffer, i));
+    realTimeChart.addChart("Фабрики", "red", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getSensor?type=1', createReciever(buffer, i));
     });
 
-    energyChart.addChart("Домохозяйства", "green", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getHomeholds', bind(buffer, i));
+    //realTimeChart.addChart('Ваше потребление')
+
+    realTimeChart.addChart("Домохозяйства", "green", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getSensor?type=2', createReciever(buffer, i));
     });
 
-    energyChart.addChart("Недостаток", "orange", function(buffer, i) {
+    realTimeChart.addChart("Недостаток", "orange", function(buffer, i) {
         var generation = buffer.values[0] * -1;
         var ownConsumption = buffer.values[1];
         var othersConsumtion = buffer.values[2];
@@ -315,11 +297,94 @@ $(document).ready(function() {
         buffer.values[i] = deficiency;
     });
 
-    energyChart.addChart("Доступно для запроса", "purple", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getAvailable', bind(buffer, i));
+    realTimeChart.addChart("Доступно для запроса", "purple", function(buffer, i) {
+        http.get('http://127.0.0.1:9000/getAvailable', createReciever(buffer, i));
     });
 
-    energyChart.start();
+    realTimeChart.start();
 
-    dayProfilesChart.start();
+
+
+
+
+
+
+
+
+    // {
+    //     label: 'Среднее потребление',
+    //     backgroundColor: Samples.utils.transparentize("orange"),
+    //     borderColor: "orange",
+    //     data: [ 
+    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
+    //     ],
+    //     fill: true,
+    // }, {
+    //     label: 'Генерация завтра',
+    //     backgroundColor: Samples.utils.transparentize("grey"),
+    //     borderColor: "grey",
+    //     data: [ 
+    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
+    //     ],
+    //     fill: true,
+    // }
+
+    var profilesChart = new ProfilesChart();
+
+    // profilesChart.addChart('Генерация завтра', 'blue', function() {
+
+    // });
+
+    profilesChart.addChart('Генерация', 'blue', function(chartdata, i) {
+        http.get('http://127.0.0.1:9000/getProfile?type=0', function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                var parsed = JSON.parse(data);
+                for (j = 0; j < 48; j++) {
+                    chartdata.datasets[i].data[j] = parsed[j] * -1;
+                }
+            });
+        });
+    });
+
+    profilesChart.addChart('Фабрики', 'red',function(chartdata, i) {
+        http.get('http://127.0.0.1:9000/getProfile?type=1', function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                var parsed = JSON.parse(data);
+                chartdata.datasets[i].data = parsed;
+            });
+        });
+    });
+
+    profilesChart.addChart('Домохозяйства', 'green', function(chartdata, i) {
+        http.get('http://127.0.0.1:9000/getProfile?type=2', function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                var parsed = JSON.parse(data);
+                chartdata.datasets[i].data = parsed;
+            });
+        });
+    });
+
+    profilesChart.addChart('Недостаток', 'orange', function(chartdata, i) {
+        for (j = 0; j < 48; j++) {
+            chartdata.datasets[i].data[j] = chartdata.datasets[0].data[j] - chartdata.datasets[1].data[j] - chartdata.datasets[2].data[j];
+        }
+    });
+
+    // })
+    
+    profilesChart.start();
 });

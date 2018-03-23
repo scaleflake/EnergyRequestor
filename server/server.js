@@ -5,18 +5,6 @@
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
-
-
-    function getRandomProfile() {
-        var profile = [
-            10, 10, 10, 10, 15, 35, 60, 75, 80, 55, 30, 25, 
-            30, 40, 50, 30, 20, 35, 60, 80, 100, 100, 90, 10
-        ];
-        for (var i = 0; i < 24; i++) {
-            profile[i] = (profile[i] / 100 * 45) * getRandomFloat(0.9, 1.1)  + getRandomFloat(-3.0, 3.0);
-        }
-        return profile;
-    }
 //} ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
 //{ eth
@@ -39,6 +27,11 @@
     const interface = require('./../contract/interface.json');
     const address = require('./../contract/address.json');
     const instance = new web3.eth.Contract(interface, address);
+
+    instance.methods.getTime().call().then(function(output) {
+        // console.log('isParticipant(' + id + ')');
+        console.log('TIME: ' + output);
+    });
 
     function participate(id) {
         instance.methods.participate(id).send({from: mainAccount}, function(error, transactionHash) {
@@ -99,6 +92,8 @@
     const FACTORY = 1
     const HOUSEHOLD = 2;
 
+    var profileGenerator = require('./../database/types.js')
+
     class Sensor {
         constructor(id, type) {
             this.id = id;
@@ -107,7 +102,7 @@
             this.current = 0;
             this.active = false;
             
-            this.profile = getRandomProfile();
+            this.profile = profileGenerator.getRandomProfile(type);
 
             addUser(id);
         }
@@ -139,9 +134,9 @@
 
     setInterval(function() {
         for (i = 0; i < sensors.length; i++) {
-            sensors[i].profile = getRandomProfile();
+            sensors[i].profile = profileGenerator.getRandomProfile(sensors[i].type);
         }
-    }, 1000 * 10)
+    }, 1000 * 15)
 
     function getEnergyByType(type) {
         var energy = 0;
@@ -153,12 +148,42 @@
         return energy;
     }
 
+    function getProfileByType(type) {
+        var profile = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+        for (i = 0; i < sensors.length; i++) {
+            if (sensors[i].type == type) {
+                for (j = 0; j < 48; j++) {
+                    profile[j] += sensors[i].profile[j];
+                }
+            }
+        }
+        return profile;
+    }
+
     function getEnergyById(id) {
         for (i = 0; i < sensors.length; i++) {
-            if (sensors[i].id === id) {
+            if (sensors[i].id == id) {
                 return sensors[i].energy;
             }
         }
+    }
+
+    function getProfileById(id) {
+        var profile = [
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+        for (i = 0; i < sensors.length; i++) {
+            if (sensors[i].id == id) {
+                for (j = 0; j < 48; j++) {
+                    profile[j] += sensors[i].profile[j];
+                }
+            }
+        }
+        return profile;
     }
 
     var currentHour = (new Date()).getHours();
@@ -191,7 +216,7 @@
     }
 //} ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
-//{ net
+//{ tcp
     const net = require('net');
     const tcpServer = net.createServer(function(sock) {
         console.log('Connected: ' + sock.remoteAddress + ':' + sock.remotePort);
@@ -205,12 +230,12 @@
             console.log('Disconnected: ' + sock.remoteAddress + ':' + sock.remotePort);
         });
     });
-
     tcpServer.listen(8000, '127.0.0.1');
     console.log('TCP server started');
     console.log('');
+//} ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
-
+//{ bot and express
     process.env["NTBA_FIX_319"] = 1;
 
     const telebot = require('node-telegram-bot-api');
@@ -222,7 +247,6 @@
     console.log('Telegram-bot started')
     console.log(users);
     console.log('');
-
 
     bot.on('message', function(msg) {
         if (msg.text === '/start') {
@@ -303,22 +327,19 @@
     const express = require('express');
     const httpServer = express();
 
-    httpServer.get('/getGenerators', function(req, res) {
-        res.send(String(getEnergyByType(GENERATOR)));
-    });
-
-    httpServer.get('/getFactories', function(req, res) {
-        res.send(String(getEnergyByType(FACTORY)));
-    });
-
-    httpServer.get('/getHomeholds', function(req, res) {
-        res.send(String(getEnergyByType(HOUSEHOLD)));
+    httpServer.get('/getSensor', function(req, res) {
+        if (req.query.type !== undefined) {
+            var string = String(getEnergyByType(parseInt(req.query.type)))
+            res.send(string);
+        } else if (req.query.id !== undefined) {
+            res.send(String(getEnergyById(parseInt(req.query.id))));
+        }
     });
 
     httpServer.get('/getAvailable', function(req, res) {
         var energy = 0.0;
         for (i = 0; i < sensors.length; i++) {
-            var sensor = sensors[i];
+            sensor = sensors[i];
             if (sensor.active){
                 energy += sensor.profile[currentHour];
             }
@@ -326,8 +347,12 @@
         res.send(String(energy));
     });
 
-    httpServer.get('/getSensor', function(req, res) {
-        res.send(String(getEnergyById(req.params.id)));
+    httpServer.get('/getProfile', function(req, res) {
+        if (req.query.type != undefined) {
+            res.send(JSON.stringify(getProfileByType(parseInt(req.query.type))));
+        } else if (req.query.id != undefined) {
+            res.send(JSON.stringify(getProfileById(parseInt(req.query.id))));
+        }
     });
 
     httpServer.get('/requestEnergy', function(req, res) {

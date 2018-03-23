@@ -34,8 +34,8 @@ var deployed = contract.deploy({
 setTimeout(function() {
     deployed.send({
         from: senderAccount,
-        gas: 1500 * kwei,
-        gasPrice: String(30 * twei)
+        gas: 150000,
+        gasPrice: String(20 * gwei)
     }).then(function(instance) {
         var address = instance.options.address;
         console.log('\n');

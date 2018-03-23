@@ -159,21 +159,25 @@
 					vertical-align: top; 
 					display: inline-block; 
 				}
+				div.block_content {
+
+				}
 				div.block_header {
 					font-size: 20px; 
 					padding: 0px; 
 					margin: 0px; 
 					text-align: center
 				}
-				
 				label {
 					font-size: 12px;
 				}
 			</style>
 			<div class = "mycontainer">	
 				<div class = "block" style = "width: 20%;">
-					<div class="block_header">Информация</div>
-					<div style = "padding-top: 40px">
+					<div class="block_header">
+						Информация
+					</div>
+					<div class="block_content" style = "padding-top: 40px">
 						<label>Недостаток: </label>
 						<div style = "font-size: 16px; padding-bottom: 20px" id = "deficiency">0.0</div>
 						<label>Общие затраты на сетевую энергию: </label>
@@ -183,33 +187,45 @@
 					</div>
 				</div>
 				<div class = "block" style = "width: 80%;">
-					<div class="block_header">Генерация и потребление</div>
-					<canvas id="generationAndConsumption" width="1000px" height="400px">Error</canvas>
+					<div class="block_header">
+						Генерация и потребление
+					</div>
+					<div class="block_content">
+						<canvas id="generationAndConsumption" width="1000px" height="400px">Error</canvas>
+					</div>
 				</div>
 			</div>
 			<div class = "mycontainer">
 				<div class = "block" style = "width: 70%; padding-right: 40px;">
-					<div class="block_header">Почасовые профили дня</div>
-					<canvas id="dayProfile" width = "1000px" height = "400px">Error</canvas>
+					<div class="block_header">
+						Почасовые профили дня
+					</div>
+					<div class="block_content">
+						<canvas id="dayProfile" width = "1000px" height = "400px">Error</canvas>
+					</div>
 				</div>
 				<div class = "block" style = "width: 30%;">
-					<div class="block_header">Запросить энергию</div>
-					<div id = "order" style = "padding-top: 30px">
-						<div class="form-group">
-							<label>Время(начало): </label>
-							<input id = 'begin' class = "form-control" type = "text" placeholder = "2018-01-01 10:00">
+					<div class="block_header">
+						Запросить энергию
+					</div>
+					<div class="block_content">
+						<div id = "order" style = "padding-top: 30px">
+							<div class="form-group">
+								<label>Время(начало): </label>
+								<input id = 'begin' class = "form-control" type = "text" placeholder = "2018-01-01 10:00">
+							</div>
+							<div class="form-group">
+								<label>Время(конец): </label>
+								<input id = 'end' class = "form-control" type = "text" placeholder = "2018-12-31 22:00">
+							</div>
+							<div class="form-group">
+								<label>Количество мощности (ватт): </label>
+								<!-- <input id = 'energy' class = "form-control" type = "number" placeholder = "100"> -->
+		 						<div id = "energydiv" style = "font-size: 16px; padding-bottom: 20px" id = "">500</div>
+		 						<input id = "energy" type = "range" max = "2000" min = "0" value = "500">
+							</div>
+							<button id="requestButton" class="btn btn-success">Отправить запрос</button>
 						</div>
-						<div class="form-group">
-							<label>Время(конец): </label>
-							<input id = 'end' class = "form-control" type = "text" placeholder = "2018-12-31 22:00">
-						</div>
-						<div class="form-group">
-							<label>Количество мощности (ватт): </label>
-							<!-- <input id = 'energy' class = "form-control" type = "number" placeholder = "100"> -->
-	 						<div id = "energydiv" style = "font-size: 16px; padding-bottom: 20px" id = "">500</div>
-	 						<input id = "energy" type = "range" max = "2000" min = "0" value = "500">
-						</div>
-						<button id="requestButton" class="btn btn-success">Отправить запрос</button>
 					</div>
 				</div>
 			</div>

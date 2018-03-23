@@ -11,8 +11,8 @@ contract EnergyRequestor {
 
         switchFine = 100;
         downtimeFine = 5;
-    
-}
+    }
+
     mapping (uint => bool) participants;
     function participate(uint id) public {
         balances[id] -= switchFine;
@@ -46,5 +46,9 @@ contract EnergyRequestor {
     function addUser(uint id) public {
         participants[id] = false;
         balances[id] = 50;
-    } 
+    }
+
+    function getTime() public constant returns(uint time) {
+        return now;
+    }
 }

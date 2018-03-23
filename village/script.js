@@ -4,13 +4,43 @@ const GENERATOR = 0;
 const FACTORY = 1
 const HOUSEHOLD = 2;
 
+// var currentHour = (new Date()).getHours();
+// setInterval(function() {
+//     currentHour = (new Date()).getHours();
+// }, 1000 * 60);
+
+var currentHour = 40;
+var div = document.getElementById('day');
+var input = document.getElementById('iday');
+input.addEventListener('input', function() {
+	div.innerHTML = String(input.value);
+	currentHour = input.value * 2.0;
+});
+
+setInterval(function() {
+	if (currentHour != 46) {
+		currentHour += 2;
+		div.innerHTML = String(currentHour / 2);
+		input.value = currentHour / 2;
+	} else {
+		currentHour = 0;
+		div.innerHTML = String(currentHour / 2);
+		input.value = currentHour / 2;
+	}
+}, 4000);
+
+const profilesGenerator = require('./../database/types.js');
+
 class Sensor {
 	constructor(id, type) {
 		this.id = id;
 		this.type = type;
 
 		this.active = true;
-		this.consumption = 90;
+		this.consumption = 0.9;
+
+		this.profile = profilesGenerator.getRandomProfile(type);
+		//this.currentRate = this.profile[currentHour];
 
 		function switchState(sensor) {
 			if (sensor.active) {
@@ -25,11 +55,12 @@ class Sensor {
 		this.div.addEventListener("click", switchState.bind(null, this));
 
 		function changeConsumption(sensor) {
-			sensor.consumption = sensor.input.value;
+			sensor.consumption = parseFloat(sensor.input.value) / 100.0;
 			console.log(sensor.consumption);
 		}
+
 		this.input = document.getElementById('i' + String(id));
-		this.input.addEventListener("change", changeConsumption.bind(null, this));
+		this.input.addEventListener("input", changeConsumption.bind(null, this));
 
 		this.client = new net.Socket();
 		this.client.connect(8000, '127.0.0.1', function() {
@@ -39,23 +70,19 @@ class Sensor {
 		    console.log('Connection closed');
 		});	
 	}
-	update() {
-		if (this.active) {
-			var usedEnergy;
-			if (this.type === GENERATOR) {
-				usedEnergy = getRandomFloat(-500.0, -400.0);
-			} else if (this.type === FACTORY) {
-				usedEnergy = getRandomFloat(300.0, 350.0);
-			} else {
-				usedEnergy = getRandomFloat(60.0, 70.0);
-			}			
-			usedEnergy *= this.consumption / 100.0;
-			var data = JSON.stringify({ 'type': this.type, 'id': this.id, 'energy': usedEnergy })
-			this.client.write(data);
-			console.log(data);
-
-			this.div.innerHTML = usedEnergy.toFixed(3) + ' watt\n<br>\n' + this.consumption + '%';
-		}
+	start() {
+		var sensor = this;
+		setInterval(function() {
+			if (sensor.active) {
+				var usedEnergy = sensor.profile[currentHour] * getRandomFloat(0.9, 1.1) * sensor.consumption;
+				var data = JSON.stringify({ 'type': sensor.type, 'id': sensor.id, 'energy': usedEnergy })
+				sensor.client.write(data);
+				sensor.div.innerHTML = usedEnergy.toFixed(3) + ' watt\n<br>\n' + sensor.consumption * 100 + '%';
+			}
+		}, 2000);
+		setInterval(function() {
+			sensor.profile = profilesGenerator.getRandomProfile(sensor.type);
+		}, 15000)
 	}
 }
 
@@ -69,11 +96,9 @@ sensors.push(new Sensor(3, HOUSEHOLD));
 sensors.push(new Sensor(4, HOUSEHOLD));
 sensors.push(new Sensor(5, HOUSEHOLD));
 
-setInterval(function() {
-	for (i = 0; i < sensors.length; i++) {
-		sensors[i].update();
-	}
-}, 5000);
+for (i = 0; i < sensors.length; i++) {
+	sensors[i].start();
+}
 
 function getRandomFloat(min, max) {
 	return (Math.random() * (max - min)) + min;
