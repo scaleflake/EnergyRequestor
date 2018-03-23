@@ -102,6 +102,7 @@
             this.current = 0;
             this.active = false;
             
+            this.buffer = 0;
             this.profile = profileGenerator.getRandomProfile(type);
 
             addUser(id);
@@ -121,6 +122,7 @@
         sensors[i].active = output;
     }
 
+    // updating participaition
     setInterval(function() {
         function isPart(id, callback) {
             instance.methods.isParticipant(id).call().then(function(output) {
@@ -132,11 +134,30 @@
         }
     }, 1000 * 5);
 
+    // var currentHour = (new Date()).getHours();
+    // setInterval(function() {
+    //     currentHour = (new Date()).getHours();
+    // }, 1000 * 60);
+
+    // setInterval(function() {
+    //     for (i = 0; i < sensors.length; i++) {
+    //         sensors[i].profile = profileGenerator.getRandomProfile(sensors[i].type);
+    //     }
+    // }, 1000 * 15);
+
+    // time ticking
+    var currentHour = 0;
     setInterval(function() {
         for (i = 0; i < sensors.length; i++) {
-            sensors[i].profile = profileGenerator.getRandomProfile(sensors[i].type);
+            sensors[i].profile[currentHour] = (sensors[i].profile[currentHour] * 0.9 + sensors[i].buffer) / 1.9;
+            sensors[i].buffer = 0;
         }
-    }, 1000 * 15)
+        if (currentHour == 47) {
+            currentHour = 0;
+        } else {
+            currentHour += 1;
+        }
+    }, 1000 * 6);
 
     function getEnergyByType(type) {
         var energy = 0;
@@ -186,12 +207,8 @@
         return profile;
     }
 
-    var currentHour = (new Date()).getHours();
-    setInterval(function() {
-        currentHour = (new Date()).getHours();
-    }, 1000 * 60);
-
     function processData(id, type, energy) {
+        sensors[id].buffer += energy;
         sensors[id].current = energy;
         isParticipant(id, function(output) {
             if (output) {
