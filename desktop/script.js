@@ -2,6 +2,22 @@ const http = require('http');
 
 const wattCost = 4.0;
 
+const host = 'http://92.255.206.247:9000/';
+//const host = 'http://127.0.0.1:9000/';
+
+function from(method) {
+    var uri = host + method;
+    if (arguments.length > 1) {
+        if (arguments.length % 2 == 1) {
+            uri += '?' + arguments[1] + '=' + arguments[2];
+            for (i = 3; i < arguments.length; i += 2) {
+                uri += '&' + arguments[i] + '=' + String(arguments[i+1]);
+            }
+        }
+    }
+    return uri;
+}
+
 class RealTimeChart {
     constructor() {
         this.buffer = {
@@ -30,6 +46,10 @@ class RealTimeChart {
             title: {
                 display: true,
                 text: ''
+            },
+            tooltips: {
+                mode: 'index',
+                intersect: false,
             },
             hover: {
                 mode: 'nearest',
@@ -205,7 +225,7 @@ class ProfilesChart {
             setInterval(function() {
                 update();
                 chart.chart.update();
-            }, 1000 * 10);
+            }, 1000 * 6);
         }, 200);
     }
 } 
@@ -224,10 +244,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     });
 
     function requestEnergy() {
-        var string = 'http://127.0.0.1:9000/requestEnergy?begin=' + begin.value + '&end=' + end.value + '&energy=' + String(energy.value);
-        console.log(string);
-
-        http.get(string, function(resp) {
+        http.get(from('requestEnergy', 'begin', begin.value, 'end', begin.end, 'energy', energy.value), function(resp) {
             var data = '';
 
             resp.on('data', function(chunk) {
@@ -263,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
 
     realTimeChart.addChart("Генерация", "blue", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getSensor?type=0', function(resp) {
+        http.get(from('getSensor', 'type', 0), function(resp) {
             var data = '';
             resp.on('data', function(chunk) {
                 data += chunk;
@@ -274,17 +291,27 @@ document.addEventListener("DOMContentLoaded", function(event) {
         });
     });
 
-    realTimeChart.addChart("Фабрики", "red", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getSensor?type=1', createReciever(buffer, i));
+    realTimeChart.addChart("Фабрики", "green", function(buffer, i) {
+        http.get(from('getSensor', 'type', 1), createReciever(buffer, i));
     });
 
-    //realTimeChart.addChart('Ваше потребление')
-
-    realTimeChart.addChart("Домохозяйства", "green", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getSensor?type=2', createReciever(buffer, i));
+    realTimeChart.addChart("Домохозяйства", "gray", function(buffer, i) {
+        http.get(from('getSensor', 'type', 2), createReciever(buffer, i));
     });
 
-    realTimeChart.addChart("Недостаток", "orange", function(buffer, i) {
+    realTimeChart.addChart("Ваше потребление", "orange", function(buffer, i) {
+        http.get(from('getSensor', 'id', 1), function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                buffer.values[i] = parseFloat(data);
+            });
+        });
+    });
+
+    realTimeChart.addChart("Недостаток", "red", function(buffer, i) {
         var generation = buffer.values[0] * -1;
         var ownConsumption = buffer.values[1];
         var othersConsumtion = buffer.values[2];
@@ -298,7 +325,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
     });
 
     realTimeChart.addChart("Доступно для запроса", "purple", function(buffer, i) {
-        http.get('http://127.0.0.1:9000/getAvailable', createReciever(buffer, i));
+        http.get(from('getAvailable'), createReciever(buffer, i));
     });
 
     realTimeChart.start();
@@ -311,34 +338,16 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
 
 
-    // {
-    //     label: 'Среднее потребление',
-    //     backgroundColor: Samples.utils.transparentize("orange"),
-    //     borderColor: "orange",
-    //     data: [ 
-    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
-    //     ],
-    //     fill: true,
-    // }, {
-    //     label: 'Генерация завтра',
-    //     backgroundColor: Samples.utils.transparentize("grey"),
-    //     borderColor: "grey",
-    //     data: [ 
-    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    //         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  
-    //     ],
-    //     fill: true,
-    // }
+
+
+
+
+
 
     var profilesChart = new ProfilesChart();
 
-    // profilesChart.addChart('Генерация завтра', 'blue', function() {
-
-    // });
-
     profilesChart.addChart('Генерация', 'blue', function(chartdata, i) {
-        http.get('http://127.0.0.1:9000/getProfile?type=0', function(resp) {
+        http.get(from('getProfile', 'type', 0), function(resp) {
             var data = '';
             resp.on('data', function(chunk) {
                 data += chunk;
@@ -352,8 +361,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
         });
     });
 
-    profilesChart.addChart('Фабрики', 'red',function(chartdata, i) {
-        http.get('http://127.0.0.1:9000/getProfile?type=1', function(resp) {
+    profilesChart.addChart('Фабрики', 'green',function(chartdata, i) {
+        http.get(from('getProfile', 'type', 1), function(resp) {
             var data = '';
             resp.on('data', function(chunk) {
                 data += chunk;
@@ -365,8 +374,8 @@ document.addEventListener("DOMContentLoaded", function(event) {
         });
     });
 
-    profilesChart.addChart('Домохозяйства', 'green', function(chartdata, i) {
-        http.get('http://127.0.0.1:9000/getProfile?type=2', function(resp) {
+    profilesChart.addChart('Домохозяйства', 'gray', function(chartdata, i) {
+        http.get(from('getProfile', 'type', 2), function(resp) {
             var data = '';
             resp.on('data', function(chunk) {
                 data += chunk;
@@ -378,13 +387,28 @@ document.addEventListener("DOMContentLoaded", function(event) {
         });
     });
 
-    profilesChart.addChart('Недостаток', 'orange', function(chartdata, i) {
+    profilesChart.addChart("Ваше потребление", "orange", function(chartdata, i) {
+        http.get(from('getProfile', 'id', 1), function(resp) {
+            var data = '';
+            resp.on('data', function(chunk) {
+                data += chunk;
+            });
+            resp.on('end', function() {
+                var parsed = JSON.parse(data);
+                chartdata.datasets[i].data = parsed;
+            });
+        });
+    });
+
+    profilesChart.addChart('Недостаток', 'red', function(chartdata, i) {
         for (j = 0; j < 48; j++) {
             chartdata.datasets[i].data[j] = chartdata.datasets[0].data[j] - chartdata.datasets[1].data[j] - chartdata.datasets[2].data[j];
         }
     });
-
-    // })
     
+    profilesChart.addChart('Доступно для запроса', 'purple', function(chartdata, i) {
+
+    });
+
     profilesChart.start();
 });
