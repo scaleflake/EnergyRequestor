@@ -9,6 +9,8 @@ const HOUSEHOLD = 2;
 //     currentHour = (new Date()).getHours();
 // }, 1000 * 60);
 
+const ip = '92.255.206.247';
+
 var currentHour = 40;
 var div = document.getElementById('day');
 var input = document.getElementById('iday');
@@ -17,9 +19,26 @@ input.addEventListener('input', function() {
 	currentHour = input.value * 2.0;
 });
 
+const http = require('http');
+
+
+
+
+function setTime(time) {
+	http.get('http://92.255.206.247:9000/setTime?time=' + time, function(resp) {
+	    var data = '';
+	    resp.on('data', function(chunk) {
+	        data += chunk;
+	    });
+	    resp.on('end', function() {
+			// console.log(data);
+	    });
+	});
+}
+
 setInterval(function() {
-	if (currentHour != 46) {
-		currentHour += 2;
+	if (currentHour != 47) {
+		currentHour += 1;
 		div.innerHTML = String(currentHour / 2);
 		input.value = currentHour / 2;
 	} else {
@@ -27,7 +46,8 @@ setInterval(function() {
 		div.innerHTML = String(currentHour / 2);
 		input.value = currentHour / 2;
 	}
-}, 4000);
+	setTime(currentHour);
+}, 1500);
 
 const profilesGenerator = require('./../database/types.js');
 
@@ -63,7 +83,7 @@ class Sensor {
 		this.input.addEventListener("input", changeConsumption.bind(null, this));
 
 		this.client = new net.Socket();
-		this.client.connect(8000, '127.0.0.1', function() {
+		this.client.connect(8000, ip, function() {
 		    console.log('Connected');
 		});
 		this.client.on('close', function() {
@@ -79,10 +99,10 @@ class Sensor {
 				sensor.client.write(data);
 				sensor.div.innerHTML = usedEnergy.toFixed(3) + ' watt\n<br>\n' + sensor.consumption * 100 + '%';
 			}
-		}, 2000);
+		}, 500);
 		setInterval(function() {
 			sensor.profile = profilesGenerator.getRandomProfile(sensor.type);
-		}, 15000)
+		}, 36000);
 	}
 }
 
