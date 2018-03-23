@@ -103,6 +103,7 @@
             this.active = false;
             
             this.buffer = 0;
+	    this.bufferSize = 0;
             this.profile = profileGenerator.getRandomProfile(type);
 
             addUser(id);
@@ -147,17 +148,17 @@
 
     // time ticking
     var currentHour = 0;
-    setInterval(function() {
-        for (i = 0; i < sensors.length; i++) {
-            sensors[i].profile[currentHour] = (sensors[i].profile[currentHour] * 0.9 + sensors[i].buffer) / 1.9;
-            sensors[i].buffer = 0;
-        }
-        if (currentHour == 47) {
-            currentHour = 0;
-        } else {
-            currentHour += 1;
-        }
-    }, 1000 * 6);
+    // setInterval(function() {
+    //     for (i = 0; i < sensors.length; i++) {
+    //         sensors[i].profile[currentHour] = (sensors[i].profile[currentHour] * 0.9 + sensors[i].buffer) / 1.9;
+    //         sensors[i].buffer = 0;
+    //     }
+    //     if (currentHour == 47) {
+    //         currentHour = 0;
+    //     } else {
+    //         currentHour += 1;
+    //     }
+    // }, 1000 * 6);
 
     function getEnergyByType(type) {
         var energy = 0;
@@ -209,6 +210,7 @@
 
     function processData(id, type, energy) {
         sensors[id].buffer += energy;
+	sensors[id].bufferSize += 1;
         sensors[id].current = energy;
         isParticipant(id, function(output) {
             if (output) {
@@ -374,6 +376,25 @@
         }
     });
 
+    httpServer.get('/setTime', function(req, res) {
+	currentHour = req.query.time;
+	var diff = 0;
+	for (i = 0; i < sensors.length; i++) {
+  	    var current = sensors[i].profile[currentHour - 1];
+	    var buffer = sensors[i].buffer;
+	    var bufferSize = sensors[i].bufferSize;
+	    if (bufferSize == 0) {
+		sensors[i].profile[currentHour - 1] -= 0.5 * current;
+	    } else {
+		sensors[i].profile[currentHour - 1] += (buffer / bufferSize - current) * 0.5;
+	    }
+	    diff += sensors[i].profile[currentHour - 1] / current - 1.0;
+            sensors[i].profile[currentHour - 1] += (buffer / bufferSize - current) * 0.1;
+            sensors[i].buffer = 0;
+	    sensors[i].bufferSize = 0;
+        }
+	res.send(String(diff / sensors.length));
+    });
     httpServer.get('/requestEnergy', function(req, res) {
         var string = 'Request from the company:\n' +
                      '```\n' + 
